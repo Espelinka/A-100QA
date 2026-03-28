@@ -34,7 +34,7 @@ export default function Page() {
   const [allDocsSearch, setAllDocsSearch] = useState("");
 
   // Modals state
-  const [selectedSubSection, setSelectedSubSection] = useState<{title: string, description: string, id?: string} | null>(null);
+  const [selectedSubSection, setSelectedSubSection] = useState<{title: string, description: string, id?: string, hasDoc?: boolean} | null>(null);
   const [viewingDescription, setViewingDescription] = useState(false);
   const [descriptionContent, setDescriptionContent] = useState<{title: string, text: string} | null>(null);
 
@@ -49,6 +49,7 @@ export default function Page() {
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
   const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [parseTarget, setParseTarget] = useState("shtukaturka");
 
   useEffect(() => {
     // Initial user load
@@ -133,9 +134,9 @@ export default function Page() {
       icon: Home, 
       hasDoc: false,
       subSections: [
-        { title: "Наружные стеновые панели", description: "Монтаж наружных стеновых панелей должен выполняться с соблюдением требований к герметизации стыков, пространственной геометрии и надежности анкеровки." },
-        { title: "Внутренние стеновые панели", description: "Требования к установке внутренних несущих и ненесущих панелей, включая допуски по вертикальности и качеству сварных соединений." },
-        { title: "Плиты перекрытия", description: "Правила укладки плит перекрытия, опирания на несущие конструкции и заделки швов между плитами." }
+        { title: "Наружные стеновые панели", docTitle: "СТБ 1185 99 Панели стеновые наружные бетонные и железобетонные_для", id: "paneli_naruzhnie", hasDoc: true, description: "Монтаж наружных стеновых панелей должен выполняться с соблюдением требований к герметизации стыков, пространственной геометрии и надежности анкеровки." },
+        { title: "Внутренние стеновые панели", id: "paneli_vnutrennie", hasDoc: false, description: "Требования к установке внутренних несущих и ненесущих панелей, включая допуски по вертикальности и качеству сварных соединений." },
+        { title: "Плиты перекрытия", id: "plity", hasDoc: false, description: "Правила укладки плит перекрытия, опирания на несущие конструкции и заделки швов между плитами." }
       ]
     },
     { title: "Монолитные конструкции", id: "monolit", icon: Layers, hasDoc: false, description: "Требования к опалубочным, арматурным и бетонным работам при возведении монолитных железобетонных конструкций." },
@@ -148,36 +149,54 @@ export default function Page() {
       hasDoc: false, 
       description: "Нормативы по монтажу светопрозрачных конструкций, герметизации монтажных швов и регулировке фурнитуры.",
       subSections: [
-        { title: "Стекло", description: "Требования к качеству стекла, отсутствию дефектов, царапин и искажений." },
-        { title: "ПВХ профиль", description: "Контроль качества профиля, армирования, сварных швов и уплотнителей." },
-        { title: "Подоконная доска", description: "Правила установки подоконников, заделки швов и обеспечения уклона." },
-        { title: "Отливы", description: "Требования к монтажу наружных отливов, герметизации и шумоизоляции." }
+        { title: "Стекло", id: "steklo", hasDoc: false, description: "Требования к качеству стекла, отсутствию дефектов, царапин и искажений." },
+        { title: "ПВХ профиль", id: "pvh", hasDoc: false, description: "Контроль качества профиля, армирования, сварных швов и уплотнителей." },
+        { title: "Подоконная доска", id: "podokonnik", hasDoc: false, description: "Правила установки подоконников, заделки швов и обеспечения уклона." },
+        { title: "Отливы", id: "otlivy", hasDoc: false, description: "Требования к монтажу наружных отливов, герметизации и шумоизоляции." }
       ]
     },
     { title: "Правила измерения", id: "izmerenie", icon: Ruler, hasDoc: false, description: "Общие правила и методы проведения контрольных измерений при приемке строительно-монтажных работ." },
+    { 
+      title: "СН 1.04.01-2020 Техническое состояние зданий и сооружений", 
+      id: "sn_teh_sostoyanie", 
+      icon: FileText, 
+      hasDoc: true, 
+      hideFromHome: true, 
+      description: "Оценка технического состояния эксплуатируемых зданий и сооружений." 
+    },
   ];
 
-  const filteredSections = controlSections.map(section => {
-    const q = searchQuery.toLowerCase();
-    const matchesSection = section.title.toLowerCase().includes(q);
-    const matchingSubSections = section.subSections?.filter(sub => 
-      sub.title.toLowerCase().includes(q)
-    );
-    
-    if (matchesSection || (matchingSubSections && matchingSubSections.length > 0)) {
-      return {
-        ...section,
-        subSections: matchesSection ? section.subSections : matchingSubSections
-      };
-    }
-    return null;
-  }).filter(Boolean) as typeof controlSections;
+  const filteredSections = controlSections
+    .filter(s => !s.hideFromHome)
+    .map(section => {
+      const q = searchQuery.toLowerCase();
+      const matchesSection = section.title.toLowerCase().includes(q);
+      const matchingSubSections = section.subSections?.filter(sub => 
+        sub.title.toLowerCase().includes(q)
+      );
+      
+      if (matchesSection || (matchingSubSections && matchingSubSections.length > 0)) {
+        return {
+          ...section,
+          subSections: matchesSection ? section.subSections : matchingSubSections
+        };
+      }
+      return null;
+    }).filter(Boolean) as typeof controlSections;
 
-  const allDocuments = controlSections.filter(s => s.hasDoc).flatMap(section => {
-    if (section.subSections) {
-      return section.subSections.map(sub => ({ ...sub, id: section.id, parentTitle: section.title as string | undefined, isSub: true, icon: section.icon }));
+  const allDocuments = controlSections.flatMap(section => {
+    const docs = [];
+    if (section.hasDoc) {
+      docs.push({ id: section.id, title: section.docTitle || section.title, description: section.description || "", parentTitle: section.hideFromHome ? undefined : section.title, isSub: false, icon: section.icon, hasDoc: true });
     }
-    return [{ id: section.id, title: section.docTitle || section.title, description: section.description || "", parentTitle: section.title as string | undefined, isSub: false, icon: section.icon }];
+    if (section.subSections) {
+      section.subSections.forEach(sub => {
+        if (sub.hasDoc) {
+          docs.push({ id: sub.id, title: (sub as any).docTitle || sub.title, description: sub.description || "", parentTitle: section.title as string | undefined, isSub: true, icon: section.icon, hasDoc: true });
+        }
+      });
+    }
+    return docs;
   });
 
   return (
@@ -293,7 +312,7 @@ export default function Page() {
                               {section.subSections.map((sub, idx) => (
                                 <button 
                                   key={idx} 
-                                  onClick={() => openSubSectionModal({...sub, id: section.id})}
+                                  onClick={() => openSubSectionModal({...sub, id: sub.id || section.id, hasDoc: (sub as any).hasDoc})}
                                   className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 rounded-xl group transition-colors border border-transparent hover:border-slate-200 text-left"
                                 >
                                   <div className="flex items-center gap-3">
@@ -412,7 +431,7 @@ export default function Page() {
                   <div className="p-4 flex items-start justify-between gap-4">
                     <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={() => {
                       if (doc.isSub) {
-                        openSubSectionModal({ title: doc.title, description: doc.description, id: doc.id });
+                        openSubSectionModal({ title: doc.title, description: doc.description, id: doc.id, hasDoc: doc.hasDoc });
                       } else {
                         // Click on main doc in "All docs" - let's send them to view directly
                         router.push(`/document/${doc.id}/view`);
@@ -482,6 +501,13 @@ export default function Page() {
 
                 <div className="w-full flex flex-col gap-2 mt-4 pt-4 border-t border-slate-100 text-left">
                   <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Инструменты Администратора</h3>
+                  <input
+                    type="text"
+                    value={parseTarget}
+                    onChange={(e) => setParseTarget(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-purple-500 focus:ring-1 focus:ring-purple-200 rounded-xl px-3 py-2 text-xs transition-all"
+                    placeholder="ID документа (напр. shtukaturka)"
+                  />
                   <button 
                     onClick={async (e) => {
                       const btn = e.currentTarget;
@@ -491,20 +517,20 @@ export default function Page() {
                         const res = await fetch("/api/admin/parse-pdf", {
                           method: "POST",
                           headers: {"Content-Type": "application/json"},
-                          body: JSON.stringify({title: "shtukaturka"})
+                          body: JSON.stringify({title: parseTarget})
                         });
                         const data = await res.json();
                         alert(data.success ? `Успешно! Извлечено ${data.textLength} символов.` : `Ошибка: ${data.error || 'Неизвестная ошибка'}`);
                       } catch (err) {
                         alert("Сетевая ошибка при парсинге");
                       } finally {
-                        btn.innerText = "Распознать текст PDF (Штукатурка)";
+                        btn.innerText = "Распознать текст PDF";
                         btn.disabled = false;
                       }
                     }}
                     className="w-full p-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl text-sm font-semibold transition-colors text-center"
                   >
-                    Распознать текст PDF (Штукатурка)
+                    Распознать текст PDF
                   </button>
                 </div>
               </div>
@@ -647,44 +673,52 @@ export default function Page() {
                   <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-amber-500 transition-colors" />
                 </button>
 
-                <button onClick={() => router.push(`/document/${selectedSubSection.id}/view`)} className="flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm border border-slate-100 hover:border-blue-200 hover:shadow-md transition-all group">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <div className="flex flex-col items-start">
-                      <span className="text-sm font-semibold text-slate-900">Полный документ</span>
-                      <span className="text-xs text-slate-500">СП, ГОСТ, ТК</span>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-blue-500 transition-colors" />
-                </button>
+                {selectedSubSection.hasDoc ? (
+                  <>
+                    <button onClick={() => router.push(`/document/${selectedSubSection.id}/view`)} className="flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm border border-slate-100 hover:border-blue-200 hover:shadow-md transition-all group">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                          <FileText className="w-5 h-5" />
+                        </div>
+                        <div className="flex flex-col items-start">
+                          <span className="text-sm font-semibold text-slate-900">Полный документ</span>
+                          <span className="text-xs text-slate-500">СП, ГОСТ, ТК</span>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                    </button>
 
-                <button className="flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm border border-slate-100 hover:border-emerald-200 hover:shadow-md transition-all group">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-                      <Ruler className="w-5 h-5" />
-                    </div>
-                    <div className="flex flex-col items-start">
-                      <span className="text-sm font-semibold text-slate-900">Правила измерения</span>
-                      <span className="text-xs text-slate-500">Схемы и допуски</span>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-500 transition-colors" />
-                </button>
+                    <button className="flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm border border-slate-100 hover:border-emerald-200 hover:shadow-md transition-all group">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                          <Ruler className="w-5 h-5" />
+                        </div>
+                        <div className="flex flex-col items-start">
+                          <span className="text-sm font-semibold text-slate-900">Правила измерения</span>
+                          <span className="text-xs text-slate-500">Схемы и допуски</span>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-500 transition-colors" />
+                    </button>
 
-                <button onClick={() => router.push(`/document/${selectedSubSection.id}/chat`)} className="flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm border border-slate-100 hover:border-purple-200 hover:shadow-md transition-all group">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                      <Sparkles className="w-5 h-5" />
-                    </div>
-                    <div className="flex flex-col items-start">
-                      <span className="text-sm font-semibold text-slate-900">AI-Ассистент</span>
-                      <span className="text-xs text-slate-500">Задать вопрос нейросети</span>
-                    </div>
+                    <button onClick={() => router.push(`/document/${selectedSubSection.id}/chat`)} className="flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm border border-slate-100 hover:border-purple-200 hover:shadow-md transition-all group">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                          <Sparkles className="w-5 h-5" />
+                        </div>
+                        <div className="flex flex-col items-start">
+                          <span className="text-sm font-semibold text-slate-900">AI-Ассистент</span>
+                          <span className="text-xs text-slate-500">Задать вопрос нейросети</span>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-purple-500 transition-colors" />
+                    </button>
+                  </>
+                ) : (
+                  <div className="p-4 mt-2 text-center text-sm text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    Документы для этого подраздела еще не загружены
                   </div>
-                  <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-purple-500 transition-colors" />
-                </button>
+                )}
               </div>
             </div>
           </motion.div>
