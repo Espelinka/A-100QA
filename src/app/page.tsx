@@ -118,13 +118,16 @@ export default function Page() {
     setFavorites(newFavorites);
 
     try {
-      await pb.collection('users').update(user.id, {
+      const updatedUser = await pb.collection('users').update(user.id, {
         favorites: newFavorites
       });
-    } catch (err) {
+      // Синхронизируем состояние юзера, чтобы эффекты не перезатерли избранное
+      pb.authStore.save(pb.authStore.token, updatedUser);
+      setUser(updatedUser);
+    } catch (err: any) {
       console.error("Failed to save favorite:", err);
       setFavorites(favorites);
-      alert("Ошибка сохранения в базу данных");
+      alert("Ошибка сохранения в базу данных: " + err.message);
     }
   };
 
