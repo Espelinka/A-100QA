@@ -65,8 +65,22 @@ export default function Page() {
 
   // Load favorites from DB
   useEffect(() => {
-    if (user && user.favorites) {
-      setFavorites(Array.isArray(user.favorites) ? user.favorites : []);
+    if (user && user.favorites !== undefined && user.favorites !== null) {
+      let favs = [];
+      if (Array.isArray(user.favorites)) {
+        favs = user.favorites;
+      } else if (typeof user.favorites === 'string') {
+        try {
+          favs = JSON.parse(user.favorites);
+        } catch (e) {
+          favs = user.favorites.split(',').filter(Boolean);
+        }
+      }
+      setFavorites(favs);
+    } else if (user) {
+      // If user exists but no favorites field, keep the current favorites state to avoid reverting optimistic UI,
+      // or assume empty if it's the initial load.
+      // We rely on the optimistic update in toggleFavorite to handle the state.
     } else {
       setFavorites([]);
     }
