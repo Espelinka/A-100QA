@@ -63,6 +63,15 @@ export default function Page() {
     return () => unsubscribe();
   }, []);
 
+  // Load favorites from DB
+  useEffect(() => {
+    if (user && user.favorites) {
+      setFavorites(Array.isArray(user.favorites) ? user.favorites : []);
+    } else {
+      setFavorites([]);
+    }
+  }, [user]);
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError("");
@@ -95,11 +104,28 @@ export default function Page() {
     setUser(null);
   };
 
-  const toggleFavorite = (title: string, e: React.MouseEvent) => {
+  const toggleFavorite = async (docId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setFavorites(prev => 
-      prev.includes(title) ? prev.filter(t => t !== title) : [...prev, title]
-    );
+    if (!user) {
+      alert("Войдите в аккаунт (вкладка Профиль), чтобы сохранять в Избранное.");
+      return;
+    }
+
+    const newFavorites = favorites.includes(docId) 
+      ? favorites.filter(id => id !== docId) 
+      : [...favorites, docId];
+    
+    setFavorites(newFavorites);
+
+    try {
+      await pb.collection('users').update(user.id, {
+        favorites: newFavorites
+      });
+    } catch (err) {
+      console.error("Failed to save favorite:", err);
+      setFavorites(favorites);
+      alert("Ошибка сохранения в базу данных");
+    }
   };
 
   // Modal history state for native swipe back
@@ -422,7 +448,7 @@ export default function Page() {
             
             <div className="flex flex-col gap-3">
               {allDocuments
-                .filter(doc => currentTab === 'favorites' ? favorites.includes(doc.title) : true)
+                .filter(doc => currentTab === 'favorites' ? favorites.includes(doc.id) : true)
                 .filter(doc => currentTab === 'all-docs' && allDocsSearch.trim() !== '' 
                   ? doc.title.toLowerCase().includes(allDocsSearch.toLowerCase()) || (doc.parentTitle && doc.parentTitle.toLowerCase().includes(allDocsSearch.toLowerCase())) 
                   : true)
@@ -448,10 +474,10 @@ export default function Page() {
                       </div>
                     </div>
                     <button 
-                      onClick={(e) => toggleFavorite(doc.title, e)}
+                      onClick={(e) => toggleFavorite(doc.id, e)}
                       className="p-2 -mr-2 text-slate-300 hover:text-amber-400 transition-colors"
                     >
-                      <Star className={`w-6 h-6 ${favorites.includes(doc.title) ? 'fill-amber-400 text-amber-400' : ''}`} />
+                      <Star className={`w-6 h-6 ${favorites.includes(doc.id) ? 'fill-amber-400 text-amber-400' : ''}`} />
                     </button>
                   </div>
                 </div>

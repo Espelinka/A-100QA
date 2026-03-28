@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { ChevronLeft, Send, Bot, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 import Markdown from "react-markdown";
+import pb from "@/lib/pb";
 
 export default function ChatPage() {
   const router = useRouter();
@@ -22,13 +23,14 @@ export default function ChatPage() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch context text from PocketBase
+  // Fetch context text and chat history from PocketBase
   useEffect(() => {
-    const fetchContext = async () => {
+    const fetchContextAndHistory = async () => {
       try {
         const pbUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL;
         if (!pbUrl) throw new Error("PocketBase URL is not configured");
 
+        // 1. Load document context
         const res = await fetch(`${pbUrl}/api/collections/documents/records?filter=(title='${id}')`);
         const data = await res.json();
 
@@ -46,7 +48,6 @@ export default function ChatPage() {
             const parseData = await parseRes.json();
             
             if (parseData.success) {
-              // Парсинг успешен, забираем обновленный текст
               const res2 = await fetch(`${pbUrl}/api/collections/documents/records?filter=(title='${id}')`);
               const data2 = await res2.json();
               text = data2.items[0].extracted_text || "";
@@ -63,6 +64,22 @@ export default function ChatPage() {
         } else {
           setError("Документ не найден в базе данных. Загрузите его в PocketBase.");
         }
+
+        // 2. Load chat history if logged in
+        if (pb.authStore.isValid && pb.authStore.model) {
+          try {
+            const history = await pb.collection('messages').getFullList({
+              filter: `document_id='${id}' && user='${pb.authStore.model.id}'`,
+              sort: 'created'
+            });
+            if (history.length > 0) {
+              setMessages(history.map(m => ({ role: m.role, text: m.text })));
+            }
+          } catch (historyErr) {
+            console.error("Ошибка загрузки истории чата:", historyErr);
+          }
+        }
+
       } catch (err: any) {
         console.error("Error fetching context:", err);
         setError("Ошибка при загрузке документа из базы");
@@ -71,7 +88,7 @@ export default function ChatPage() {
       }
     };
 
-    fetchContext();
+    fetchContextAndHistory();
   }, [id]);
 
   useEffect(() => {
@@ -83,6 +100,8 @@ export default function ChatPage() {
   const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
     const userMsg = chatInput;
+    
+    // Optimistic UI update
     setMessages(prev => [...prev, { role: "user", text: userMsg }]);
     setChatInput("");
     setIsChatLoading(true);
@@ -91,6 +110,20 @@ export default function ChatPage() {
       setMessages(prev => [...prev, { role: "assistant", text: "Ошибка: Контекст документа не загружен. ИИ не может ответить." }]);
       setIsChatLoading(false);
       return;
+    }
+
+    // Save user message to DB if logged in
+    if (pb.authStore.isValid && pb.authStore.model) {
+      try {
+        await pb.collection('messages').create({
+          user: pb.authStore.model.id,
+          document_id: id,
+          role: 'user',
+          text: userMsg
+        });
+      } catch (e) {
+        console.error("Failed to save user message", e);
+      }
     }
 
     try {
@@ -111,7 +144,24 @@ export default function ChatPage() {
       }
 
       const data = await response.json();
-      setMessages(prev => [...prev, { role: "assistant", text: data.text || "Нет ответа" }]);
+      const aiReply = data.text || "Нет ответа";
+      
+      setMessages(prev => [...prev, { role: "assistant", text: aiReply }]);
+
+      // Save AI message to DB if logged in
+      if (pb.authStore.isValid && pb.authStore.model) {
+        try {
+          await pb.collection('messages').create({
+            user: pb.authStore.model.id,
+            document_id: id,
+            role: 'assistant',
+            text: aiReply
+          });
+        } catch (e) {
+          console.error("Failed to save assistant message", e);
+        }
+      }
+
     } catch (error) {
       console.error(error);
       setMessages(prev => [...prev, { role: "assistant", text: "Произошла ошибка при обращении к ИИ." }]);
