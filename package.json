@@ -14,7 +14,7 @@
     "express": "^4.21.2",
     "lucide-react": "^0.546.0",
     "motion": "^12.38.0",
-    "next": "^15.2.1",
+    "next": "^16.2.1",
     "pdf-parse": "^1.1.1",
     "pocketbase": "^0.26.8",
     "postcss": "^8.5.8",
