@@ -101,6 +101,31 @@ export default function Page() {
     );
   };
 
+  // Modal history state for native swipe back
+  useEffect(() => {
+    const handlePopState = () => {
+      setSelectedSubSection(null);
+      setViewingDescription(false);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const openSubSectionModal = (sub: any) => {
+    window.history.pushState({ modal: true }, "");
+    setSelectedSubSection(sub);
+  };
+
+  const closeModals = () => {
+    window.history.back();
+  };
+
+  const openDescriptionModal = (content: any) => {
+    window.history.pushState({ modal: true }, "");
+    setDescriptionContent(content);
+    setViewingDescription(true);
+  };
+
   const controlSections = [
     { 
       title: "Сборные железобетонные конструкции", 
@@ -268,7 +293,7 @@ export default function Page() {
                               {section.subSections.map((sub, idx) => (
                                 <button 
                                   key={idx} 
-                                  onClick={() => setSelectedSubSection({...sub, id: section.id})}
+                                  onClick={() => openSubSectionModal({...sub, id: section.id})}
                                   className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 rounded-xl group transition-colors border border-transparent hover:border-slate-200 text-left"
                                 >
                                   <div className="flex items-center gap-3">
@@ -281,10 +306,7 @@ export default function Page() {
                             </div>
                           ) : section.hasDoc ? (
                             <>
-                              <button onClick={() => {
-                                setDescriptionContent({ title: section.title, text: section.description || "" });
-                                setViewingDescription(true);
-                              }} className="flex items-center justify-between p-3 bg-slate-50 hover:bg-amber-50 rounded-xl group transition-colors border border-transparent hover:border-amber-100">
+                              <button onClick={() => openDescriptionModal({ title: section.title, text: section.description || "" })} className="flex items-center justify-between p-3 bg-slate-50 hover:bg-amber-50 rounded-xl group transition-colors border border-transparent hover:border-amber-100">
                                 <div className="flex items-center gap-3">
                                   <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-amber-600">
                                     <AlignLeft className="w-4 h-4" />
@@ -390,7 +412,7 @@ export default function Page() {
                   <div className="p-4 flex items-start justify-between gap-4">
                     <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={() => {
                       if (doc.isSub) {
-                        setSelectedSubSection({ title: doc.title, description: doc.description, id: doc.id });
+                        openSubSectionModal({ title: doc.title, description: doc.description, id: doc.id });
                       } else {
                         // Click on main doc in "All docs" - let's send them to view directly
                         router.push(`/document/${doc.id}/view`);
@@ -601,7 +623,7 @@ export default function Page() {
             className="fixed inset-0 z-[110] bg-[#F8FAFC] flex flex-col"
           >
             <div className="flex items-center justify-between px-4 py-4 border-b border-slate-200 bg-white shadow-sm z-10">
-              <button onClick={() => setSelectedSubSection(null)} className="p-2 -ml-2 text-slate-500 hover:text-slate-900">
+              <button onClick={closeModals} className="p-2 -ml-2 text-slate-500 hover:text-slate-900">
                 <ChevronRight className="w-6 h-6 rotate-180" />
               </button>
               <span className="font-semibold text-slate-900 text-sm truncate px-4">{selectedSubSection.title}</span>
@@ -612,10 +634,7 @@ export default function Page() {
               <div className="flex flex-col gap-3">
                 <h3 className="text-sm font-semibold text-slate-900 ml-1">Материалы раздела</h3>
                 
-                <button onClick={() => {
-                  setDescriptionContent({ title: selectedSubSection.title, text: selectedSubSection.description });
-                  setViewingDescription(true);
-                }} className="flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm border border-slate-100 hover:border-amber-200 hover:shadow-md transition-all group">
+                <button onClick={() => openDescriptionModal({ title: selectedSubSection.title, text: selectedSubSection.description })} className="flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm border border-slate-100 hover:border-amber-200 hover:shadow-md transition-all group">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-colors">
                       <AlignLeft className="w-5 h-5" />
@@ -683,7 +702,7 @@ export default function Page() {
             className="fixed inset-0 z-[120] bg-white flex flex-col"
           >
             <div className="flex items-center justify-between px-4 py-4 border-b border-slate-100 bg-white">
-              <button onClick={() => setViewingDescription(false)} className="p-2 -ml-2 text-slate-500 hover:text-slate-900">
+              <button onClick={closeModals} className="p-2 -ml-2 text-slate-500 hover:text-slate-900">
                 <X className="w-6 h-6" />
               </button>
               <span className="font-semibold text-slate-900 text-sm truncate max-w-[250px]">{descriptionContent.title}</span>
