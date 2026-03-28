@@ -33,9 +33,35 @@ export default function ChatPage() {
         const data = await res.json();
 
         if (data.items && data.items.length > 0) {
-          setContextText(data.items[0].extracted_text || "");
+          let text = data.items[0].extracted_text || "";
+
+          // Если текст пустой, но файл есть — пытаемся автоматически его распарсить
+          if (!text && data.items[0].pdf_file) {
+            console.log("Текст пуст, запускаем авто-парсер PDF...");
+            const parseRes = await fetch("/api/admin/parse-pdf", {
+              method: "POST",
+              headers: {"Content-Type": "application/json"},
+              body: JSON.stringify({title: id})
+            });
+            const parseData = await parseRes.json();
+            
+            if (parseData.success) {
+              // Парсинг успешен, забираем обновленный текст
+              const res2 = await fetch(`${pbUrl}/api/collections/documents/records?filter=(title='${id}')`);
+              const data2 = await res2.json();
+              text = data2.items[0].extracted_text || "";
+            } else {
+              throw new Error("Ошибка авто-чтения PDF: " + parseData.error);
+            }
+          }
+
+          if (text) {
+            setContextText(text);
+          } else {
+            setError("Не удалось прочитать текст документа. Проверьте PDF.");
+          }
         } else {
-          setError("Текст документа для ИИ не найден в базе данных");
+          setError("Документ не найден в базе данных. Загрузите его в PocketBase.");
         }
       } catch (err: any) {
         console.error("Error fetching context:", err);
