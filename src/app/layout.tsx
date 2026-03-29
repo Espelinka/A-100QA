@@ -5,6 +5,9 @@ import "../index.css";
 export const metadata: Metadata = {
   title: "Отдел качества А-100",
   description: "Контроль и совершенство",
+  icons: {
+    icon: "/logo.png",
+  },
 };
 
 export default function RootLayout({

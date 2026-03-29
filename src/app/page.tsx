@@ -244,8 +244,8 @@ export default function Page() {
       {/* Header */}
       <header className={`absolute top-0 left-0 w-full z-50 px-6 py-4 flex justify-between items-center ${currentTab === 'home' ? 'bg-gradient-to-b from-black/60 to-transparent' : 'bg-blue-600 shadow-md'}`}>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-blue-600/90 backdrop-blur-sm flex items-center justify-center shadow-sm border border-white/20">
-            <Compass className="w-5 h-5 text-white" />
+          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm overflow-hidden">
+            <img src="/logo.png" alt="А-100" className="w-full h-full object-contain" />
           </div>
           <span className="font-bold text-white tracking-tight">
             А-100 <span className="text-white/70 font-medium">Справочник</span>
