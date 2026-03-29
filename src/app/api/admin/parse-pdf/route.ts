@@ -63,9 +63,10 @@ export async function POST(req: Request) {
     // 5. RAG: Нарезаем текст и загружаем в Pinecone (Векторная база)
     try {
       await upsertDocumentToPinecone(title, extractedText);
-    } catch (pineconeErr) {
+    } catch (pineconeErr: any) {
       console.error("Ошибка при сохранении в Pinecone:", pineconeErr);
-      // Мы не прерываем работу, если Pinecone упал, но запишем ошибку в логи
+      // Временно пробрасываем ошибку Pinecone в UI для дебага на Vercel
+      return NextResponse.json({ error: "Pinecone Error: " + (pineconeErr.message || String(pineconeErr)) }, { status: 500 });
     }
 
     // 6. Сохраняем извлеченный текст обратно в PocketBase (на всякий случай как бэкап)
