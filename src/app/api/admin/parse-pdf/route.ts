@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import pb from "@/lib/pb";
+import { upsertDocumentToPinecone } from "@/lib/rag";
 
 export const maxDuration = 60; // 60 seconds limit on Vercel
 
@@ -59,7 +60,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Не удалось извлечь текст из PDF (возможно, это сканы без распознавания)" }, { status: 400 });
     }
 
-    // 5. Сохраняем извлеченный текст обратно в PocketBase
+    // 5. RAG: Нарезаем текст и загружаем в Pinecone (Векторная база)
+    try {
+      await upsertDocumentToPinecone(title, extractedText);
+    } catch (pineconeErr) {
+      console.error("Ошибка при сохранении в Pinecone:", pineconeErr);
+      // Мы не прерываем работу, если Pinecone упал, но запишем ошибку в логи
+    }
+
+    // 6. Сохраняем извлеченный текст обратно в PocketBase (на всякий случай как бэкап)
     await pb.collection("documents").update(record.id, {
       extracted_text: extractedText
     });

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { queryRelevantChunks } from "@/lib/rag";
 import pb from "@/lib/pb";
 
 export const maxDuration = 60; // Increase Vercel function timeout to 60 seconds
@@ -12,27 +13,41 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "OpenRouter API key is not configured" }, { status: 500 });
     }
 
-    const pbUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL;
-    if (!pbUrl) {
-      return NextResponse.json({ error: "PocketBase URL is not configured" }, { status: 500 });
+    // Get the user's latest message for the semantic search query
+    const userMessages = messages.filter((m: any) => m.role === 'user');
+    const latestQuery = userMessages[userMessages.length - 1]?.text || "";
+
+    let contextText = "";
+
+    try {
+      // 1. Поиск релевантных кусков текста в Pinecone (Векторный поиск)
+      const relevantChunks = await queryRelevantChunks(documentId, latestQuery, 10); // Берем топ-10 абзацев
+      if (relevantChunks.length > 0) {
+        contextText = relevantChunks.join("\n\n---\n\n");
+      }
+    } catch (e) {
+      console.warn("Pinecone search failed, falling back to full text if possible", e);
     }
 
-    // Fetch the extracted text directly from the database to avoid massive HTTP payloads from the frontend
-    const records = await fetch(`${pbUrl}/api/collections/documents/records?filter=(title='${documentId}')`, { cache: 'no-store' });
-    const data = await records.json();
-    
-    let contextText = "";
-    if (data.items && data.items.length > 0) {
-      contextText = data.items[0].extracted_text || "";
+    // Fallback: Если Pinecone пуст или не работает, забираем весь текст из PocketBase
+    if (!contextText) {
+      const pbUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL;
+      if (pbUrl) {
+        const records = await fetch(`${pbUrl}/api/collections/documents/records?filter=(title='${documentId}')`, { cache: 'no-store' });
+        const data = await records.json();
+        if (data.items && data.items.length > 0) {
+          contextText = data.items[0].extracted_text || "";
+        }
+      }
     }
 
     if (!contextText) {
       return NextResponse.json({ error: "Текст документа не найден в базе данных" }, { status: 400 });
     }
 
-    const systemPrompt = `Ты — узкоспециализированный строительный эксперт-ассистент (Отдел качества А-100). Твоя задача — отвечать на вопросы пользователя ИСКЛЮЧИТЕЛЬНО на основе предоставленного ниже текста Строительных Правил (СП). Текущий раздел: "${title}".
+    const systemPrompt = `Ты — узкоспециализированный строительный эксперт-ассистент (Отдел качества А-100). Твоя задача — отвечать на вопросы пользователя ИСКЛЮЧИТЕЛЬНО на основе предоставленных ниже фрагментов Строительных Правил (СП). Текущий раздел: "${title}".
 
-Текст документа:
+Фрагменты документа:
 ${contextText}
 
 СТРОГИЕ ПРАВИЛА:
@@ -60,7 +75,7 @@ ${contextText}
         "X-Title": "A-100 QA" // Optional site name
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash", // Use Gemini 2.5 Flash for its massive 1M token context window
+        model: "google/gemini-2.5-flash", // Оставляем Gemini или можем вернуть gpt-4o-mini
         messages: openRouterMessages,
       })
     });
