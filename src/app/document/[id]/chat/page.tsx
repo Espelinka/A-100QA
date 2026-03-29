@@ -134,7 +134,7 @@ export default function ChatPage() {
         },
         body: JSON.stringify({
           messages: [...messages, { role: "user", text: userMsg }],
-          contextText,
+          documentId: id,
           title
         })
       });

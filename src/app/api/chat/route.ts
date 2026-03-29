@@ -1,12 +1,31 @@
 import { NextResponse } from "next/server";
+import pb from "@/lib/pb";
 
 export async function POST(req: Request) {
   try {
-    const { messages, contextText, title } = await req.json();
+    const { messages, documentId, title } = await req.json();
 
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ error: "OpenRouter API key is not configured" }, { status: 500 });
+    }
+
+    const pbUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL;
+    if (!pbUrl) {
+      return NextResponse.json({ error: "PocketBase URL is not configured" }, { status: 500 });
+    }
+
+    // Fetch the extracted text directly from the database to avoid massive HTTP payloads from the frontend
+    const records = await fetch(`${pbUrl}/api/collections/documents/records?filter=(title='${documentId}')`, { cache: 'no-store' });
+    const data = await records.json();
+    
+    let contextText = "";
+    if (data.items && data.items.length > 0) {
+      contextText = data.items[0].extracted_text || "";
+    }
+
+    if (!contextText) {
+      return NextResponse.json({ error: "Текст документа не найден в базе данных" }, { status: 400 });
     }
 
     const systemPrompt = `Ты — узкоспециализированный строительный эксперт-ассистент (Отдел качества А-100). Твоя задача — отвечать на вопросы пользователя ИСКЛЮЧИТЕЛЬНО на основе предоставленного ниже текста Строительных Правил (СП). Текущий раздел: "${title}".
@@ -50,8 +69,8 @@ ${contextText}
       return NextResponse.json({ error: "Ошибка ответа от ИИ сервиса" }, { status: response.status });
     }
 
-    const data = await response.json();
-    return NextResponse.json({ text: data.choices[0].message.content });
+    const resData = await response.json();
+    return NextResponse.json({ text: resData.choices[0].message.content });
   } catch (error) {
     console.error("Internal Server Error:", error);
     return NextResponse.json({ error: "Внутренняя ошибка сервера" }, { status: 500 });
