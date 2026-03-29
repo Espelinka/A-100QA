@@ -49,7 +49,6 @@ export default function Page() {
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState("");
   const [isAuthLoading, setIsAuthLoading] = useState(false);
-  const [parseTarget, setParseTarget] = useState("shtukaturka");
 
   useEffect(() => {
     // Initial user load
@@ -539,41 +538,6 @@ export default function Page() {
                     className="w-full p-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-sm font-semibold transition-colors mt-2"
                   >
                     Выйти из аккаунта
-                  </button>
-                </div>
-
-                <div className="w-full flex flex-col gap-2 mt-4 pt-4 border-t border-slate-100 text-left">
-                  <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Инструменты Администратора</h3>
-                  <input
-                    type="text"
-                    value={parseTarget}
-                    onChange={(e) => setParseTarget(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-purple-500 focus:ring-1 focus:ring-purple-200 rounded-xl px-3 py-2 text-xs transition-all"
-                    placeholder="ID документа (напр. shtukaturka)"
-                  />
-                  <button 
-                    onClick={async (e) => {
-                      const btn = e.currentTarget;
-                      btn.innerText = "Парсинг...";
-                      btn.disabled = true;
-                      try {
-                        const res = await fetch("/api/admin/parse-pdf", {
-                          method: "POST",
-                          headers: {"Content-Type": "application/json"},
-                          body: JSON.stringify({title: parseTarget})
-                        });
-                        const data = await res.json();
-                        alert(data.success ? `Успешно! Извлечено ${data.textLength} символов.` : `Ошибка: ${data.error || 'Неизвестная ошибка'}`);
-                      } catch (err) {
-                        alert("Сетевая ошибка при парсинге");
-                      } finally {
-                        btn.innerText = "Распознать текст PDF";
-                        btn.disabled = false;
-                      }
-                    }}
-                    className="w-full p-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-xl text-sm font-semibold transition-colors text-center"
-                  >
-                    Распознать текст PDF
                   </button>
                 </div>
               </div>
