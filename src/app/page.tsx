@@ -35,8 +35,6 @@ export default function Page() {
 
   // Modals state
   const [selectedSubSection, setSelectedSubSection] = useState<{title: string, description: string, id?: string, hasDoc?: boolean} | null>(null);
-  const [viewingDescription, setViewingDescription] = useState(false);
-  const [descriptionContent, setDescriptionContent] = useState<{title: string, text: string} | null>(null);
 
   // Navigation & Favorites state
   const [currentTab, setCurrentTab] = useState<'home' | 'all-docs' | 'favorites' | 'profile'>('home');
@@ -148,7 +146,6 @@ export default function Page() {
   useEffect(() => {
     const handlePopState = () => {
       setSelectedSubSection(null);
-      setViewingDescription(false);
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -161,12 +158,6 @@ export default function Page() {
 
   const closeModals = () => {
     window.history.back();
-  };
-
-  const openDescriptionModal = (content: any) => {
-    window.history.pushState({ modal: true }, "");
-    setDescriptionContent(content);
-    setViewingDescription(true);
   };
 
   const controlSections = [
@@ -374,19 +365,6 @@ export default function Page() {
                             </div>
                           ) : section.hasDoc ? (
                             <>
-                              <button onClick={() => openDescriptionModal({ title: section.title, text: section.description || "" })} className="flex items-center justify-between p-3 bg-slate-50 hover:bg-amber-50 rounded-xl group transition-colors border border-transparent hover:border-amber-100">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-amber-600">
-                                    <AlignLeft className="w-4 h-4" />
-                                  </div>
-                                  <div className="flex flex-col items-start">
-                                    <span className="text-sm font-medium text-slate-900 group-hover:text-amber-700 transition-colors">Краткое описание</span>
-                                    <span className="text-[11px] text-slate-500">Основная информация</span>
-                                  </div>
-                                </div>
-                                <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-amber-500 transition-colors" />
-                              </button>
-
                               <button onClick={() => router.push(`/document/${section.id}/view`)} className="flex items-center justify-between p-3 bg-slate-50 hover:bg-blue-50 rounded-xl group transition-colors border border-transparent hover:border-blue-100">
                                 <div className="flex items-center gap-3">
                                   <div className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-blue-600">
@@ -669,19 +647,6 @@ export default function Page() {
               <div className="flex flex-col gap-3">
                 <h3 className="text-sm font-semibold text-slate-900 ml-1">Материалы раздела</h3>
                 
-                <button onClick={() => openDescriptionModal({ title: selectedSubSection.title, text: selectedSubSection.description })} className="flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm border border-slate-100 hover:border-amber-200 hover:shadow-md transition-all group">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-colors">
-                      <AlignLeft className="w-5 h-5" />
-                    </div>
-                    <div className="flex flex-col items-start">
-                      <span className="text-sm font-semibold text-slate-900">Краткое описание</span>
-                      <span className="text-xs text-slate-500">Основная информация</span>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-amber-500 transition-colors" />
-                </button>
-
                 {selectedSubSection.hasDoc ? (
                   <>
                     <button onClick={() => router.push(`/document/${selectedSubSection.id}/view`)} className="flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm border border-slate-100 hover:border-blue-200 hover:shadow-md transition-all group">
@@ -734,32 +699,7 @@ export default function Page() {
         )}
       </AnimatePresence>
 
-      {/* Description Modal */}
-      <AnimatePresence>
-        {viewingDescription && descriptionContent && (
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-[120] bg-white flex flex-col"
-          >
-            <div className="flex items-center justify-between px-4 py-4 border-b border-slate-100 bg-white">
-              <button onClick={closeModals} className="p-2 -ml-2 text-slate-500 hover:text-slate-900">
-                <X className="w-6 h-6" />
-              </button>
-              <span className="font-semibold text-slate-900 text-sm truncate max-w-[250px]">{descriptionContent.title}</span>
-              <div className="w-6" />
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-slate-50">
-              <div className="bg-white p-5 md:p-8 rounded-2xl shadow-sm border border-slate-100 text-sm text-slate-700 whitespace-pre-wrap leading-relaxed max-w-3xl mx-auto">
-                <h2 className="text-lg font-bold text-slate-900 mb-4">{descriptionContent.title}</h2>
-                {descriptionContent.text}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Description Modal Removed */}
     </div>
   );
 }
