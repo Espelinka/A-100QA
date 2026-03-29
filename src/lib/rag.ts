@@ -92,10 +92,10 @@ export const upsertDocumentToPinecone = async (documentId: string, text: string)
     const batch = vectors.slice(i, i + batchSize);
     try {
       // @ts-ignore
-      await index.upsert(batch); // For older pinecone
+      await index.upsert({ records: batch });
     } catch(e) {
       // @ts-ignore
-      await index.upsert(batch); // For newer pinecone if it accepts array
+      await index.upsert(batch);
     }
   }
   console.log(`[RAG] Successfully upserted document ${documentId} to Pinecone.`);
