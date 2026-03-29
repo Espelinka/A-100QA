@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: "Контроль и совершенство",
   icons: {
     icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
   },
 };
 
