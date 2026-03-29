@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import pb from "@/lib/pb";
 
+export const maxDuration = 60; // Increase Vercel function timeout to 60 seconds
+
 export async function POST(req: Request) {
   try {
     const { messages, documentId, title } = await req.json();
@@ -58,7 +60,7 @@ ${contextText}
         "X-Title": "A-100 QA" // Optional site name
       },
       body: JSON.stringify({
-        model: "openai/gpt-4o-mini",
+        model: "google/gemini-2.5-flash", // Use Gemini 2.5 Flash for its massive 1M token context window
         messages: openRouterMessages,
       })
     });
@@ -66,7 +68,7 @@ ${contextText}
     if (!response.ok) {
       const err = await response.text();
       console.error("OpenRouter API Error:", err);
-      return NextResponse.json({ error: "Ошибка ответа от ИИ сервиса" }, { status: response.status });
+      return NextResponse.json({ error: "Ошибка ответа от ИИ сервиса", details: err }, { status: response.status });
     }
 
     const resData = await response.json();

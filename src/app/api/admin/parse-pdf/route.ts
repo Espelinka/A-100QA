@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import pb from "@/lib/pb";
 
+export const maxDuration = 60; // 60 seconds limit on Vercel
+
 export async function POST(req: Request) {
   try {
     const { title } = await req.json();
