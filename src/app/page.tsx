@@ -267,9 +267,6 @@ export default function Page() {
               <h1 className="text-white font-bold text-3xl leading-tight tracking-tight">
                 Контроль и<br />совершенство
               </h1>
-              <p className="text-slate-300 text-sm mt-2 max-w-[80%]">
-                Нормативы, СНиПы и регламенты качества А-100
-              </p>
             </div>
           </section>
 
@@ -372,7 +369,6 @@ export default function Page() {
                                   </div>
                                   <div className="flex flex-col items-start">
                                     <span className="text-sm font-medium text-slate-900 group-hover:text-blue-700 transition-colors">Полный документ</span>
-                                    <span className="text-[11px] text-slate-500">СП, ГОСТ, ТК</span>
                                   </div>
                                 </div>
                                 <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors" />
@@ -385,7 +381,6 @@ export default function Page() {
                                   </div>
                                   <div className="flex flex-col items-start">
                                     <span className="text-sm font-medium text-slate-900 group-hover:text-emerald-700 transition-colors">Правила измерения</span>
-                                    <span className="text-[11px] text-slate-500">Схемы и допуски</span>
                                   </div>
                                 </div>
                                 <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 transition-colors" />
@@ -398,7 +393,6 @@ export default function Page() {
                                   </div>
                                   <div className="flex flex-col items-start">
                                     <span className="text-sm font-medium text-slate-900 group-hover:text-purple-700 transition-colors">AI-Ассистент</span>
-                                    <span className="text-[11px] text-slate-500">Задать вопрос нейросети</span>
                                   </div>
                                 </div>
                                 <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-purple-500 transition-colors" />
@@ -656,7 +650,6 @@ export default function Page() {
                         </div>
                         <div className="flex flex-col items-start">
                           <span className="text-sm font-semibold text-slate-900">Полный документ</span>
-                          <span className="text-xs text-slate-500">СП, ГОСТ, ТК</span>
                         </div>
                       </div>
                       <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-blue-500 transition-colors" />
@@ -669,7 +662,6 @@ export default function Page() {
                         </div>
                         <div className="flex flex-col items-start">
                           <span className="text-sm font-semibold text-slate-900">Правила измерения</span>
-                          <span className="text-xs text-slate-500">Схемы и допуски</span>
                         </div>
                       </div>
                       <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-500 transition-colors" />
@@ -682,7 +674,6 @@ export default function Page() {
                         </div>
                         <div className="flex flex-col items-start">
                           <span className="text-sm font-semibold text-slate-900">AI-Ассистент</span>
-                          <span className="text-xs text-slate-500">Задать вопрос нейросети</span>
                         </div>
                       </div>
                       <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-purple-500 transition-colors" />
