@@ -45,7 +45,14 @@ export default function ChatPage() {
               headers: {"Content-Type": "application/json"},
               body: JSON.stringify({title: id})
             });
-            const parseData = await parseRes.json();
+            
+            const rawText = await parseRes.text();
+            let parseData;
+            try {
+              parseData = JSON.parse(rawText);
+            } catch (jsonErr) {
+              throw new Error(`Сервер ответил ошибкой (${parseRes.status}): ` + rawText.substring(0, 100));
+            }
             
             if (parseData.success) {
               const res2 = await fetch(`${pbUrl}/api/collections/documents/records?filter=(title='${id}')`);
@@ -82,7 +89,7 @@ export default function ChatPage() {
 
       } catch (err: any) {
         console.error("Error fetching context:", err);
-        setError("Ошибка при загрузке документа из базы");
+        setError(`Критическая ошибка: ${err.message || "Неизвестно"}`);
       } finally {
         setIsContextLoading(false);
       }
