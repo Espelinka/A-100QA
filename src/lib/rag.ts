@@ -10,30 +10,41 @@ export const initPinecone = () => {
   });
 };
 
-let pipelineInstance: any = null;
-
-// Initialize the embedding pipeline
-export const getEmbeddingPipeline = async () => {
-  if (!pipelineInstance) {
-    // Dynamically import to avoid Next.js build issues
-    const { pipeline, env } = await import('@xenova/transformers');
-    // Configure environment
-    env.allowLocalModels = false;
-    // Load the model
-    pipelineInstance = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-  }
-  return pipelineInstance;
-};
-
-// Generate embedding vector for a piece of text
+// Generate embedding vector using OpenRouter (OpenAI text-embedding-3-small)
 export const generateEmbedding = async (text: string): Promise<number[]> => {
-  const extractor = await getEmbeddingPipeline();
-  const output = await extractor(text, { pooling: 'mean', normalize: true });
-  return Array.from(output.data);
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set");
+
+  const response = await fetch("https://openrouter.ai/api/v1/embeddings", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "https://a-100qa.vercel.app", 
+      "X-Title": "A-100 QA"
+    },
+    body: JSON.stringify({
+      model: "text-embedding-3-small", // На OpenRouter иногда можно просто указать базовое имя для эмбеддингов
+      input: text
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("OpenRouter Embeddings Error:", errorText);
+    throw new Error(`Ошибка генерации вектора (${response.status}): ${errorText}`);
+  }
+
+  const data = await response.json();
+  if (!data.data || !data.data[0] || !data.data[0].embedding) {
+    throw new Error("Неверный формат ответа от OpenRouter: " + JSON.stringify(data));
+  }
+
+  return data.data[0].embedding; // 1536 измерений
 };
 
 // Split large text into overlapping chunks
-export const chunkText = (text: string, chunkSize = 1000, overlap = 200): string[] => {
+export const chunkText = (text: string, chunkSize = 1500, overlap = 300): string[] => {
   const chunks: string[] = [];
   let i = 0;
   while (i < text.length) {
@@ -55,15 +66,23 @@ export const upsertDocumentToPinecone = async (documentId: string, text: string)
   const vectors = [];
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
-    const embedding = await generateEmbedding(chunk);
-    vectors.push({
-      id: `${documentId}-chunk-${i}-${uuidv4()}`,
-      values: embedding,
-      metadata: {
-        documentId: documentId,
-        text: chunk
-      }
-    });
+    // OpenRouter limits embedding batch sizes, so we do it one by one (or batch if supported)
+    // To avoid rate limits, we add a tiny delay
+    await new Promise(r => setTimeout(r, 100)); 
+    
+    try {
+      const embedding = await generateEmbedding(chunk);
+      vectors.push({
+        id: `${documentId}-chunk-${i}-${uuidv4()}`,
+        values: embedding,
+        metadata: {
+          documentId: documentId,
+          text: chunk
+        }
+      });
+    } catch (e) {
+      console.warn(`[RAG] Chunk ${i} failed to embed, skipping...`, e);
+    }
   }
 
   console.log(`[RAG] Upserting ${vectors.length} vectors to Pinecone...`);
@@ -83,7 +102,7 @@ export const upsertDocumentToPinecone = async (documentId: string, text: string)
 };
 
 // Query Pinecone for relevant chunks
-export const queryRelevantChunks = async (documentId: string, query: string, topK = 5): Promise<string[]> => {
+export const queryRelevantChunks = async (documentId: string, query: string, topK = 10): Promise<string[]> => {
   console.log(`[RAG] Generating embedding for query: "${query}"`);
   const queryEmbedding = await generateEmbedding(query);
   
@@ -105,3 +124,4 @@ export const queryRelevantChunks = async (documentId: string, query: string, top
   // Extract the text from the top matches
   return results.matches.map(match => match.metadata?.text as string).filter(Boolean);
 };
+
