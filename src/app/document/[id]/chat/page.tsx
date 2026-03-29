@@ -147,7 +147,8 @@ export default function ChatPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Ошибка API");
+        const errorText = await response.text();
+        throw new Error(`Ошибка сервера (${response.status}): ${errorText.substring(0, 100)}`);
       }
 
       const data = await response.json();
@@ -169,9 +170,9 @@ export default function ChatPage() {
         }
       }
 
-    } catch (error) {
-      console.error(error);
-      setMessages(prev => [...prev, { role: "assistant", text: "Произошла ошибка при обращении к ИИ." }]);
+    } catch (err: any) {
+      console.error(err);
+      setMessages(prev => [...prev, { role: "assistant", text: `Произошла ошибка при обращении к ИИ: ${err.message || "Неизвестно"}` }]);
     } finally {
       setIsChatLoading(false);
     }
@@ -222,7 +223,7 @@ export default function ChatPage() {
               {msg.role === 'user' ? (
                 msg.text
               ) : (
-                <div className="markdown-body prose prose-sm prose-slate max-w-none">
+                <div className="markdown-body prose prose-sm prose-slate max-w-none prose-p:my-1 prose-headings:mb-2 prose-headings:mt-4 prose-ul:my-1 prose-li:my-0.5">
                   <Markdown>{msg.text}</Markdown>
                 </div>
               )}
