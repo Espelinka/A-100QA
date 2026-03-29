@@ -44,7 +44,7 @@ export const generateEmbedding = async (text: string): Promise<number[]> => {
 };
 
 // Split large text into overlapping chunks
-export const chunkText = (text: string, chunkSize = 1500, overlap = 300): string[] => {
+export const chunkText = (text: string, chunkSize = 8000, overlap = 1000): string[] => {
   const chunks: string[] = [];
   let i = 0;
   while (i < text.length) {
@@ -64,25 +64,33 @@ export const upsertDocumentToPinecone = async (documentId: string, text: string)
   const index = pc.Index('a100-qa');
   
   const vectors = [];
-  for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i];
-    // OpenRouter limits embedding batch sizes, so we do it one by one (or batch if supported)
-    // To avoid rate limits, we add a tiny delay
-    await new Promise(r => setTimeout(r, 100)); 
+  const concurrency = 10; // Обрабатываем по 10 кусков параллельно
+  
+  for (let i = 0; i < chunks.length; i += concurrency) {
+    const chunkBatch = chunks.slice(i, i + concurrency);
+    const promises = chunkBatch.map(async (chunk, idx) => {
+      try {
+        const embedding = await generateEmbedding(chunk);
+        return {
+          id: `${documentId}-chunk-${i + idx}-${uuidv4()}`,
+          values: embedding,
+          metadata: {
+            documentId: documentId,
+            text: chunk
+          }
+        };
+      } catch (e) {
+        console.warn(`[RAG] Chunk ${i + idx} failed to embed, skipping...`, e);
+        return null;
+      }
+    });
+
+    const results = await Promise.all(promises);
+    // @ts-ignore
+    vectors.push(...results.filter(Boolean));
     
-    try {
-      const embedding = await generateEmbedding(chunk);
-      vectors.push({
-        id: `${documentId}-chunk-${i}-${uuidv4()}`,
-        values: embedding,
-        metadata: {
-          documentId: documentId,
-          text: chunk
-        }
-      });
-    } catch (e) {
-      console.warn(`[RAG] Chunk ${i} failed to embed, skipping...`, e);
-    }
+    // Небольшая задержка между батчами, чтобы не убить лимиты API
+    await new Promise(r => setTimeout(r, 200));
   }
 
   console.log(`[RAG] Upserting ${vectors.length} vectors to Pinecone...`);
