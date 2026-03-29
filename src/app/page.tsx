@@ -176,9 +176,9 @@ export default function Page() {
       icon: Home, 
       hasDoc: false,
       subSections: [
-        { title: "Наружные стеновые панели", docTitle: "СТБ 1185 99 Панели стеновые наружные бетонные и железобетонные_для", id: "paneli_naruzhnie", hasDoc: true, description: "Монтаж наружных стеновых панелей должен выполняться с соблюдением требований к герметизации стыков, пространственной геометрии и надежности анкеровки." },
-        { title: "Внутренние стеновые панели", id: "paneli_vnutrennie", hasDoc: false, description: "Требования к установке внутренних несущих и ненесущих панелей, включая допуски по вертикальности и качеству сварных соединений." },
-        { title: "Плиты перекрытия", id: "plity", hasDoc: false, description: "Правила укладки плит перекрытия, опирания на несущие конструкции и заделки швов между плитами." }
+        { title: "Наружные стеновые панели", docTitle: "СТБ 1185-99 Панели стеновые наружные бетонные и железобетонные", id: "paneli_naruzhnie", hasDoc: true, description: "Монтаж наружных стеновых панелей должен выполняться с соблюдением требований к герметизации стыков, пространственной геометрии и надежности анкеровки." },
+        { title: "Внутренние стеновые панели", docTitle: "СТБ 2173-2011 Панели стеновые внутренние бетонные и железобетонные", id: "paneli_vnutrennie", hasDoc: true, description: "Требования к установке внутренних несущих и ненесущих панелей, включая допуски по вертикальности и качеству сварных соединений." },
+        { title: "Плиты перекрытия", docTitle: "СТБ 1383-2003 Плиты покрытий и перекрытий железобетонные", id: "plity", hasDoc: true, description: "Правила укладки плит перекрытия, опирания на несущие конструкции и заделки швов между плитами." }
       ]
     },
     { title: "Монолитные конструкции", id: "monolit", icon: Layers, hasDoc: false, description: "Требования к опалубочным, арматурным и бетонным работам при возведении монолитных железобетонных конструкций." },
@@ -229,12 +229,12 @@ export default function Page() {
   const allDocuments = controlSections.flatMap(section => {
     const docs = [];
     if (section.hasDoc) {
-      docs.push({ id: section.id, title: section.docTitle || section.title, description: section.description || "", parentTitle: section.hideFromHome ? undefined : section.title, isSub: false, icon: section.icon, hasDoc: true });
+      docs.push({ id: section.id, title: section.docTitle || section.title, description: section.description || "", parentTitle: undefined as string | undefined, isSub: false, icon: section.icon, hasDoc: true });
     }
     if (section.subSections) {
       section.subSections.forEach(sub => {
         if (sub.hasDoc) {
-          docs.push({ id: sub.id, title: (sub as any).docTitle || sub.title, description: sub.description || "", parentTitle: section.title as string | undefined, isSub: true, icon: section.icon, hasDoc: true });
+          docs.push({ id: sub.id, title: (sub as any).docTitle || sub.title, description: sub.description || "", parentTitle: undefined as string | undefined, isSub: true, icon: section.icon, hasDoc: true });
         }
       });
     }
@@ -472,12 +472,7 @@ export default function Page() {
                 <div key={idx} className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden flex flex-col transition-all hover:border-blue-200 hover:shadow-md">
                   <div className="p-4 flex items-start justify-between gap-4">
                     <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={() => {
-                      if (doc.isSub) {
-                        openSubSectionModal({ title: doc.title, description: doc.description, id: doc.id, hasDoc: doc.hasDoc });
-                      } else {
-                        // Click on main doc in "All docs" - let's send them to view directly
-                        router.push(`/document/${doc.id}/view`);
-                      }
+                      router.push(`/document/${doc.id}/view`);
                     }}>
                       <div className="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 shrink-0">
                         <doc.icon className="w-5 h-5" strokeWidth={2} />
