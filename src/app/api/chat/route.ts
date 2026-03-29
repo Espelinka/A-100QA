@@ -71,12 +71,13 @@ ${contextText}
       headers: {
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://a-100qa.vercel.app", // Optional site URL
-        "X-Title": "A-100 QA" // Optional site name
+        "HTTP-Referer": "https://a-100qa.vercel.app", 
+        "X-Title": "A-100 QA"
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash", // Оставляем Gemini или можем вернуть gpt-4o-mini
+        model: "google/gemini-2.5-flash",
         messages: openRouterMessages,
+        stream: true,
       })
     });
 
@@ -86,8 +87,45 @@ ${contextText}
       return NextResponse.json({ error: "Ошибка ответа от ИИ сервиса", details: err }, { status: response.status });
     }
 
-    const resData = await response.json();
-    return NextResponse.json({ text: resData.choices[0].message.content });
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        if (!response.body) {
+          controller.close();
+          return;
+        }
+        const reader = response.body.getReader();
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value);
+            const lines = chunk.split("\n");
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                const data = line.slice(6);
+                if (data === "[DONE]") break;
+                try {
+                  const json = JSON.parse(data);
+                  const text = json.choices[0]?.delta?.content || "";
+                  if (text) {
+                    controller.enqueue(encoder.encode(text));
+                  }
+                } catch (e) {}
+              }
+            }
+          }
+        } catch (e) {
+          controller.error(e);
+        } finally {
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(stream);
   } catch (error) {
     console.error("Internal Server Error:", error);
     return NextResponse.json({ error: "Внутренняя ошибка сервера" }, { status: 500 });

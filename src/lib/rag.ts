@@ -44,7 +44,7 @@ export const generateEmbedding = async (text: string): Promise<number[]> => {
 };
 
 // Split large text into overlapping chunks
-export const chunkText = (text: string, chunkSize = 8000, overlap = 1000): string[] => {
+export const chunkText = (text: string, chunkSize = 3000, overlap = 500): string[] => {
   const chunks: string[] = [];
   let i = 0;
   while (i < text.length) {
@@ -110,7 +110,7 @@ export const upsertDocumentToPinecone = async (documentId: string, text: string)
 };
 
 // Query Pinecone for relevant chunks
-export const queryRelevantChunks = async (documentId: string, query: string, topK = 10): Promise<string[]> => {
+export const queryRelevantChunks = async (documentId: string, query: string, topK = 15): Promise<string[]> => {
   console.log(`[RAG] Generating embedding for query: "${query}"`);
   const queryEmbedding = await generateEmbedding(query);
   

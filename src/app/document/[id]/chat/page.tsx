@@ -151,19 +151,38 @@ export default function ChatPage() {
         throw new Error(`Ошибка сервера (${response.status}): ${errorText.substring(0, 100)}`);
       }
 
-      const data = await response.json();
-      const aiReply = data.text || "Нет ответа";
-      
-      setMessages(prev => [...prev, { role: "assistant", text: aiReply }]);
+      if (!response.body) throw new Error("Нет ответа от сервера");
 
-      // Save AI message to DB if logged in
-      if (pb.authStore.isValid && pb.authStore.model) {
+      // Добавляем пустое сообщение ассистента, которое будем наполнять
+      setMessages(prev => [...prev, { role: "assistant", text: "" }]);
+      
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value);
+        accumulatedText += chunk;
+
+        // Обновляем последнее сообщение в списке
+        setMessages(prev => {
+          const newMsgs = [...prev];
+          newMsgs[newMsgs.length - 1].text = accumulatedText;
+          return newMsgs;
+        });
+      }
+
+      // Save AI message to DB if logged in (only after stream finished)
+      if (pb.authStore.isValid && pb.authStore.model && accumulatedText) {
         try {
           await pb.collection('messages').create({
             user: pb.authStore.model.id,
             document_id: id,
             role: 'assistant',
-            text: aiReply
+            text: accumulatedText
           });
         } catch (e) {
           console.error("Failed to save assistant message", e);
